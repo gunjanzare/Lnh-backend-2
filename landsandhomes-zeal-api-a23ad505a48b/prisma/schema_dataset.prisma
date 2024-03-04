@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "mongodb"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+model Person {
+  partyId       Int      @id @map("_id")
+  salutation    String
+  firstName     String
+  middleName    String
+  lastName      String
+  personalTitle String
+  suffix        String
+  gender        String
+  birthDate     DateTime
+  maritalStatus String
+  Party         Party?   @relation(fields: [partyPartyId], references: [partyId])
+  partyPartyId  Int?
+}
+
+model Party {
+  partyId                Int    @id @map("_id")
+  uniqueId               String @unique @default(uuid())
+  partyTypeId            Int
+  externalId             String
+  preferredCurrencyUomId Int
+  description            String
+  statusId               Int
+
+  PartyContactMechanism             PartyContactMechanism[]
+  PartyGroup                        PartyGroup[]
+  Person                            Person[]
+  UserLogin                         UserLogin[]
+  PartyRole                         PartyRole[]
+  FromAgreements                    Agreement[]             @relation("FromPartyRelation")
+  ToAgreements                      Agreement[]             @relation("ToPartyRelation")
+  ToPartyCommunicationEventRelation CommunicationEvent[]    @relation("ToPartyRelation")
+  FromPartyRelation                 CommunicationEvent[]    @relation("FromPartyRelation")
+}
+
+model PartyGroup {
+  partyGroupId        Int    @id @map("_id")
+  groupName      String
+  groupNameLocal String
+  officeSiteName String
+  comments       String
+  logoImageUrl   String
+  Party          Party? @relation(fields: [partyId], references: [partyId])
+  partyId   Int?
+}
+
+model PartyRole {
+  partyRoleId          Int                  @id @map("_id")
+  roleTypeId           Int                  @unique
+  partyId              Int?
+  Party                Party?               @relation(fields: [partyId], references: [partyId])
+  CommunicationEvent   CommunicationEvent[]
+  FromAgreements       Agreement[]          @relation("FromPartyRoleRelation")
+  ToAgreements         Agreement[]          @relation("ToPartyRoleRelation")
+  ToRoleTypeRelation   CommunicationEvent[] @relation("ToRoleTypeRelation")
+  FromRoleTypeRelation CommunicationEvent[] @relation("FromRoleTypeRelation")
+}
+
+model UserLogin {
+  userLoginId            Int      @id @map("_id")
+  currentPassword        String
+  passwordHint           String
+  isSystem               Boolean
+  enabled                Boolean
+  hasLoggedOut           Boolean
+  requirePasswordChange  Boolean
+  lastCurrencyUom        String
+  lastLocale             String
+  lastTimeZone           String
+  disabledDateTime       DateTime
+  successiveFailedLogins Int
+  partyId                Int
+  Party                  Party    @relation(fields: [partyId], references: [partyId])
+}
+
+model Agreement {
+  agreementid     Int       @id @map("_id")
+  productId       Int
+  partyIdFrom     Int
+  FromParty       Party     @relation("FromPartyRelation", fields: [partyIdFrom], references: [partyId])
+  partyIdTo       Int
+  ToParty         Party     @relation("ToPartyRelation", fields: [partyIdTo], references: [partyId])
+  roleTypeIdFrom  Int
+  FromPartyRole   PartyRole @relation("FromPartyRoleRelation", fields: [roleTypeIdFrom], references: [roleTypeId])
+  roleTypeIdTo    Int
+  ToPartyRole     PartyRole @relation("ToPartyRoleRelation", fields: [roleTypeIdTo], references: [roleTypeId])
+  agreementTypeId Int
+  agreementDate   DateTime
+  fromDate        DateTime
+  thruDate        DateTime
+}
+
+// Communications Model
+model PartyContactMechanism {
+  id                    Int      @id @map("_id")
+  contactMechId         Int
+  fromDate              DateTime
+  thruDate              DateTime
+  roleTypeId            Int
+  allowSolicitation     Boolean
+  extension             String
+  verified              Boolean
+  yearsWithContactMech  Int
+  monthsWithContactMech Int
+  Party                 Party?   @relation(fields: [partyPartyId], references: [partyId])
+  partyPartyId          Int?
+}
+
+model ContactMechanism {
+  contactMechanismId                   Int                  @id @map("_id")
+  contactMechanismTypeId               Int
+  infoString                           String
+  CommunicationEventTransitionRelation CommunicationEvent[]
+}
+
+model CommunicationEvent {
+  communicationEventId             Int                  @id @map("_id")
+  communicationEventTypeId         Int
+  originalCommunicationEventid     Int
+  parentCommunicationEventId       Int
+  parentCommunicationEvent         CommunicationEvent?  @relation(name: "ParentCommunicationEventRelation", fields: [parentCommunicationEventId], references: [communicationEventId], onDelete: NoAction, onUpdate: NoAction)
+  statusid                         Int
+  contactMechanismTypeId           Int
+  contactMechanismIdFrom           Int
+  contactMechanismIdTo             Int
+  partyIdTo                        Int
+  ToParty                          Party?               @relation(name: "ToPartyRelation", fields: [partyIdTo], references: [partyId])
+  roleTypeIdTo                     Int
+  ToRoleType                       PartyRole?           @relation(name: "ToRoleTypeRelation", fields: [roleTypeIdTo], references: [roleTypeId])
+  partyIdFrom                      Int
+  FromParty                        Party?               @relation(name: "FromPartyRelation", fields: [partyIdFrom], references: [partyId])
+  roleTypeIdFrom                   Int
+  FromRoleType                     PartyRole?           @relation(name: "FromRoleTypeRelation", fields: [roleTypeIdFrom], references: [roleTypeId])
+  reasonEnumId                     Int
+  contactListId                    Int
+  partyRoleId                      Int?
+  PartyRoleRelation                PartyRole?           @relation(fields: [partyRoleId], references: [partyRoleId])
+  ContactMechanismId               Int?
+  ContactMechanism                 ContactMechanism?    @relation(fields: [ContactMechanismId], references: [contactMechanismId])
+  ParentCommunicationEventRelation CommunicationEvent[] @relation(name: "ParentCommunicationEventRelation")
+}

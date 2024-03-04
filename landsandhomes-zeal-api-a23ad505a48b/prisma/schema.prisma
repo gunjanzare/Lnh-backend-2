@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "mongodb"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+model User {
+  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
+  uniqueId           String           @unique @default(cuid())
+  name               String
+  email              String           @unique
+  password           String
+  phoneNumber        String           @unique
+  organizationId     String           @map("organization_id") @db.ObjectId
+  createdAt          DateTime         @default(now())
+  organization       Organization     @relation(fields: [organizationId], references: [id])
+  organizationUnit   OrganizationUnit @relation(fields: [organizationUnitId], references: [id])
+  organizationUnitId String           @map("organization_unit_id") @db.ObjectId
+}
+
+enum OrganizationTypeEnum {
+  AGENT
+  BUILDER
+  APP
+}
+
+model Organization {
+  id                String               @id @default(auto()) @map("_id") @db.ObjectId
+  uniqueId          String               @unique @default(cuid())
+  name              String
+  type              OrganizationTypeEnum @default(AGENT)
+  location          String
+  address           String
+  createdAt         DateTime             @default(now())
+  organizationUnits OrganizationUnit[]
+  User              User[]
+}
+
+model OrganizationUnit {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  uniqueId        String       @unique @default(cuid())
+  name            String
+  businessPurpose String
+  organizationId  String       @map("organization_id") @db.ObjectId
+  createdAt       DateTime     @default(now())
+  Organization    Organization @relation(fields: [organizationId], references: [id])
+  User            User[]
+}
